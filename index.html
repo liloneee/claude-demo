@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TO DO LIST — 今日</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <main class="today-panel">
+      <header class="today-header">
+        <h1 class="brand">TO DO LIST</h1>
+      </header>
+
+      <section class="input-area">
+        <input id="taskInput" type="text" placeholder="新增待办事项..." />
+        <button id="addBtn" class="primary-btn">提交</button>
+      </section>
+
+      <section class="list-area">
+        <ul id="todayList" class="todo-list"></ul>
+        <div id="emptyState" class="empty-state">脆女士今天要做甚么？</div>
+      </section>
+
+      <footer class="today-footer">
+        <div id="stats" class="stats">— 条</div>
+      </footer>
+    </main>
+
+    <aside class="history-panel">
+      <header class="history-header">
+        <h2>History</h2>
+        <div class="history-controls">
+          <button id="viewAllBtn" class="small-btn active">全部</button>
+        </div>
+      </header>
+
+      <section id="historyAccordion" class="history-accordion"></section>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
