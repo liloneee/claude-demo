@@ -6,8 +6,9 @@ const todayList = document.getElementById('todayList');
 const emptyState = document.getElementById('emptyState');
 const stats = document.getElementById('stats');
 const historyAccordion = document.getElementById('historyAccordion');
+const dailyNoteEl = document.getElementById('dailyNote');
 
-let state = { tasks: [] };
+let state = { tasks: [], dailyNotes: {} };
 
 function normalizeTask(task) {
   return {
@@ -20,15 +21,33 @@ function normalizeTask(task) {
   };
 }
 
+// Note: image handling (paste/preview/resize) removed — daily notes are text-only now.
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      state = { tasks: Array.isArray(data.tasks) ? data.tasks.map(normalizeTask) : [] };
+      // strip any HTML from previously-saved daily notes so notes are plain text
+      const cleanNotes = {};
+      if (data.dailyNotes) {
+        Object.keys(data.dailyNotes).forEach(k => {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.dailyNotes[k], 'text/html');
+            cleanNotes[k] = doc.body.textContent || '';
+          } catch (e) {
+            cleanNotes[k] = String(data.dailyNotes[k] || '');
+          }
+        });
+      }
+      state = {
+        tasks: Array.isArray(data.tasks) ? data.tasks.map(normalizeTask) : [],
+        dailyNotes: cleanNotes
+      };
       save();
     }
-  } catch (e) { state = { tasks: [] }; }
+  } catch (e) { state = { tasks: [], dailyNotes: {} }; }
 }
 
 function save() {
@@ -87,6 +106,19 @@ function updateNote(id, value) {
 function formatDate(ts) {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function updateDailyNoteForKey(key, text) {
+  state.dailyNotes = state.dailyNotes || {};
+  if (text && text.trim() !== '') state.dailyNotes[key] = text;
+  else delete state.dailyNotes[key];
+  save();
+}
+
+function renderDailyNote() {
+  if (!dailyNoteEl) return;
+  const todayKey = formatDate(Date.now());
+  dailyNoteEl.value = state.dailyNotes && state.dailyNotes[todayKey] ? state.dailyNotes[todayKey] : '';
 }
 
 function splitEveryNChars(text, n) {
@@ -232,6 +264,20 @@ function renderHistory() {
       body.appendChild(itemWrapper);
     });
 
+    // attach daily note for this date (if exists)
+    if (state.dailyNotes && state.dailyNotes[key]) {
+      const noteToggle = document.createElement('button');
+      noteToggle.className = 'note-toggle';
+      noteToggle.type = 'button';
+      noteToggle.textContent = '查看日记';
+      const notePanel = document.createElement('div');
+      notePanel.className = 'history-note';
+      notePanel.textContent = state.dailyNotes[key];
+      noteToggle.addEventListener('click', () => notePanel.classList.toggle('open'));
+      body.appendChild(noteToggle);
+      body.appendChild(notePanel);
+    }
+
     header.addEventListener('click', () => body.classList.toggle('open'));
 
     group.appendChild(header);
@@ -249,6 +295,14 @@ function sync() {
 load();
 renderToday();
 renderHistory();
+
+// render today's daily note and wire autosave + paste-image handling
+renderDailyNote();
+
+if (dailyNoteEl) {
+  const todayKey = formatDate(Date.now());
+  dailyNoteEl.addEventListener('input', () => updateDailyNoteForKey(todayKey, dailyNoteEl.value));
+}
 
 addBtn.addEventListener('click', addTask);
 taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
